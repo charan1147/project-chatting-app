@@ -20,7 +20,7 @@ const io = setupSocket(server);
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: process.env.FRONTEND_URL,
     credentials: true,
   })
 );
@@ -40,5 +40,5 @@ app.use("/api/call", callRoutes);
 
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5016;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
