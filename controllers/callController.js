@@ -1,0 +1,87 @@
+import mongoose from "mongoose";
+import Message from "../models/Message.js";
+import { getSocketIdByUserId } from "../websocket/index.js";
+
+export const startCall = async (req, res) => {
+  try {
+    const { receiverId, roomId, signalData, callType = "video" } = req.body;
+    if (
+      !receiverId ||
+      !roomId ||
+      !signalData ||
+      !["video", "audio"].includes(callType)
+    ) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing or invalid data" });
+    }
+    await Message.create({
+      sender: req.user.id,
+      receiver: receiverId,
+      type: callType,
+      callInfo: { callType, roomId, startedAt: new Date() },
+    });
+    const receiverSocketId = getSocketIdByUserId(receiverId);
+    if (!receiverSocketId) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Receiver offline" });
+    }
+    req.io
+      .to(receiverSocketId)
+      .emit("call:user", { signal: signalData, from: req.user.id, roomId });
+    res.json({ success: true, message: "Call started" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const answerCall = async (req, res) => {
+  try {
+    const { roomId, signalData } = req.body;
+    if (!roomId || !signalData) {
+      return res.status(400).json({ success: false, message: "Missing data" });
+    }
+    const [user1Id, user2Id] = roomId.split("_");
+    const initiatorId = req.user.id === user1Id ? user2Id : user1Id;
+    const initiatorSocketId = getSocketIdByUserId(initiatorId);
+    if (!initiatorSocketId) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Caller offline" });
+    }
+    req.io.to(initiatorSocketId).emit("call:accepted", { signal: signalData });
+    res.json({ success: true, message: "Call answered" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const endCall = async (req, res) => {
+  try {
+    const { roomId } = req.body;
+    if (!roomId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing roomId" });
+    }
+    const callMessage = await Message.findOne({
+      "callInfo.roomId": roomId,
+      "callInfo.endedAt": { $exists: false },
+    });
+    if (callMessage) {
+      callMessage.callInfo.endedAt = new Date();
+      callMessage.callInfo.duration = Math.round(
+        (new Date() - callMessage.callInfo.startedAt) / 1000
+      );
+      await callMessage.save();
+    }
+    const [user1Id, user2Id] = roomId.split("_");
+    const otherUserId = req.user.id === user1Id ? user2Id : user1Id;
+    const otherSocketId = getSocketIdByUserId(otherUserId);
+    if (otherSocketId) req.io.to(otherSocketId).emit("call:ended");
+    res.json({ success: true, message: "Call ended" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
