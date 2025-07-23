@@ -72,7 +72,7 @@ export const endCall = async (req, res) => {
     if (callMessage) {
       callMessage.callInfo.endedAt = new Date();
       callMessage.callInfo.duration = Math.round(
-        (new Date() - callMessage.callInfo.startedAt) / 1000
+        (Date.now() - callMessage.callInfo.startedAt.getTime()) / 1000
       );
       await callMessage.save();
     }

@@ -10,6 +10,7 @@ import chatRoutes from "./routes/chatRoutes.js";
 import callRoutes from "./routes/callRoutes.js";
 import { setupSocket } from "./websocket/index.js";
 import { errorHandler } from "./utils/errorHandler.js";
+import helmet from "helmet";
 
 dotenv.config();
 connectDB();
@@ -26,6 +27,7 @@ app.use(
 );
 app.use(cookieParser());
 app.use(express.json());
+app.use(helmet());
 
 app.use((req, res, next) => {
   req.io = io;
@@ -41,6 +43,6 @@ app.use("/api/call", callRoutes);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5016;
-server.listen(PORT, "0.0.0.0", () =>
-  console.log(`Server running on http://0.0.0.0:${PORT}`)
+server.listen(PORT, () =>
+  console.log(`Server running on ${PORT}`)
 );
