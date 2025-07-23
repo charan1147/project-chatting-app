@@ -1,5 +1,6 @@
 import { Server } from "socket.io";
 import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
 
 export const userSocketMap = new Map();
 
@@ -12,11 +13,31 @@ export const setupSocket = (server) => {
   });
 
   io.on("connection", (socket) => {
-    socket.on("register", (userId) => {
-      if (!mongoose.Types.ObjectId.isValid(userId)) return;
-      userSocketMap.set(userId, socket.id);
-      socket.userId = userId;
-      socket.join(userId);
+    socket.on("register", (userId, callback) => {
+      const token = socket.handshake.auth.token;
+      if (!token) {
+        callback?.({ error: "No token provided" });
+        return socket.disconnect();
+      }
+
+      try {
+        const decoded = jwt.verify(
+          token.replace("Bearer ", ""),
+          process.env.JWT_SECRET
+        );
+        if (!mongoose.Types.ObjectId.isValid(userId) || decoded.id !== userId) {
+          callback?.({ error: "Invalid user ID or token" });
+          return socket.disconnect();
+        }
+
+        userSocketMap.set(userId, socket.id);
+        socket.userId = userId;
+        socket.join(userId);
+        callback?.({ success: true });
+      } catch (err) {
+        callback?.({ error: "Invalid token" });
+        socket.disconnect();
+      }
     });
 
     socket.on("callUser", ({ receiverId, signalData, from, roomId }) => {
