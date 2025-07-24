@@ -3,17 +3,18 @@ import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    contacts: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    name: { type: String, required: true }, 
+    email: { type: String, required: true, unique: true }, 
+    password: { type: String, required: true }, 
+    contacts: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], // List of contact IDs
   },
-  { timestamps: true }
+  { timestamps: true } 
 );
+
 
 userSchema.pre("save", async function (next) {
   if (this.isModified("password")) {
-    this.password = await bcrypt.hash(this.password, 10);
+    this.password = await bcrypt.hash(this.password, 10); // Hash password with bcrypt
   }
   next();
 });

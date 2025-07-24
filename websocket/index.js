@@ -4,10 +4,24 @@ import jwt from "jsonwebtoken";
 
 export const userSocketMap = new Map();
 
+
+export const getSocketIdByUserId = (userId) => userSocketMap.get(userId);
+
+
+export const getRoomId = (user1, user2) => {
+  return [String(user1), String(user2)].sort().join("_"); 
+};
+
+
 export const setupSocket = (server) => {
+  if (!process.env.JWT_SECRET || !process.env.FRONTEND_URL) {
+    console.error("Error: JWT_SECRET or FRONTEND_URL missing in .env file");
+    process.exit(1);
+  }
+
   const io = new Server(server, {
     cors: {
-      origin: process.env.FRONTEND_URL,
+      origin: process.env.FRONTEND_URL, 
       credentials: true,
     },
   });
@@ -21,18 +35,19 @@ export const setupSocket = (server) => {
       }
 
       try {
-        const decoded = jwt.verify(
-          token.replace("Bearer ", ""),
-          process.env.JWT_SECRET
-        );
+        const cleanToken = token.startsWith("Bearer ")
+          ? token.replace("Bearer ", "")
+          : token;
+        const decoded = jwt.verify(cleanToken, process.env.JWT_SECRET);
+
+     
         if (!mongoose.Types.ObjectId.isValid(userId) || decoded.id !== userId) {
           callback?.({ error: "Invalid user ID or token" });
           return socket.disconnect();
         }
 
-        userSocketMap.set(userId, socket.id);
-        socket.userId = userId;
-        socket.join(userId);
+        userSocketMap.set(userId, socket.id); 
+        socket.userId = userId; 
         callback?.({ success: true });
       } catch (err) {
         callback?.({ error: "Invalid token" });
@@ -40,9 +55,10 @@ export const setupSocket = (server) => {
       }
     });
 
-    socket.on("callUser", ({ receiverId, signalData, from, roomId }) => {
+    socket.on("callUser", ({ receiverId, signalData, from }) => {
       const receiverSocketId = userSocketMap.get(receiverId);
       if (receiverSocketId) {
+        const roomId = getRoomId(from, receiverId);
         io.to(receiverSocketId).emit("call:user", {
           signal: signalData,
           from,
@@ -51,7 +67,11 @@ export const setupSocket = (server) => {
       }
     });
 
+
     socket.on("answerCall", ({ roomId, signal }) => {
+      if (!roomId || !roomId.includes("_")) {
+        return; 
+      }
       const [user1Id, user2Id] = roomId.split("_");
       const initiatorId = socket.userId === user1Id ? user2Id : user1Id;
       const initiatorSocketId = userSocketMap.get(initiatorId);
@@ -60,7 +80,11 @@ export const setupSocket = (server) => {
       }
     });
 
+
     socket.on("endCall", ({ roomId }) => {
+      if (!roomId || !roomId.includes("_")) {
+        return;
+      }
       const [user1Id, user2Id] = roomId.split("_");
       const otherUserId = socket.userId === user1Id ? user2Id : user1Id;
       const otherSocketId = userSocketMap.get(otherUserId);
@@ -70,11 +94,11 @@ export const setupSocket = (server) => {
     });
 
     socket.on("disconnect", () => {
-      if (socket.userId) userSocketMap.delete(socket.userId);
+      if (socket.userId) {
+        userSocketMap.delete(socket.userId);
+      }
     });
   });
 
   return io;
 };
-
-export const getSocketIdByUserId = (userId) => userSocketMap.get(userId);

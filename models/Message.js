@@ -5,24 +5,33 @@ const messageSchema = new mongoose.Schema(
     sender: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: true, 
     },
     receiver: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
-    content: { type: String, required: false },
-    type: { type: String, enum: ["text", "video", "audio"], default: "text" },
+    content: {
+      type: String,
+      required: function () {
+        return this.type === "text"; 
+      },
+    },
+    type: {
+      type: String,
+      enum: ["text", "video", "audio"],
+      default: "text", 
+    },
     callInfo: {
-      callType: { type: String, enum: ["video", "audio"] },
-      roomId: { type: String },
-      startedAt: { type: Date },
-      endedAt: { type: Date },
-      duration: { type: Number },
+      callType: { type: String, enum: ["video", "audio"] }, 
+      roomId: { type: String }, 
+      startedAt: { type: Date }, 
+      endedAt: { type: Date }, 
+      duration: { type: Number }, 
     },
   },
-  { timestamps: true }
+  { timestamps: true } 
 );
 
 export default mongoose.model("Message", messageSchema);

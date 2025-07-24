@@ -1,5 +1,7 @@
 import User from "../models/User.js";
 import { generateToken } from "../services/jwtService.js";
+import mongoose from "mongoose"; 
+
 
 export const registerUser = async (req, res) => {
   try {
@@ -8,14 +10,14 @@ export const registerUser = async (req, res) => {
     if (!name || !email || !password) {
       return res
         .status(400)
-        .json({ success: false, message: "All fields required" });
+        .json({ success: false, message: "All fields are required" });
     }
 
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res
         .status(400)
-        .json({ success: false, message: "User already exists" });
+        .json({ success: false, message: "Email already used" });
     }
 
     const user = await User.create({ name, email, password });
@@ -27,10 +29,12 @@ export const registerUser = async (req, res) => {
       user: { id: user._id, name: user.name, email: user.email },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("Register error:", err.message); 
+    res.status(500).json({ success: false, message: "Something went wrong" });
   }
 };
 
+// Log in a user
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -45,7 +49,7 @@ export const loginUser = async (req, res) => {
     if (!user || !(await user.comparePassword(password))) {
       return res
         .status(400)
-        .json({ success: false, message: "Invalid credentials" });
+        .json({ success: false, message: "Wrong email or password" });
     }
 
     const token = generateToken(user._id);
@@ -55,10 +59,33 @@ export const loginUser = async (req, res) => {
       user: { id: user._id, name: user.name, email: user.email },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("Login error:", err.message); 
+    res.status(500).json({ success: false, message: "Something went wrong" });
   }
 };
 
+// Log out a user
 export const logout = async (req, res) => {
-  res.status(200).json({ success: true, message: "Logged out successfully" });
+  res.clearCookie("token"); 
+  res.status(200).json({ success: true, message: "Logged out" });
+};
+
+export const getMe = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.user.id)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid user ID" });
+    }
+    const user = await User.findById(req.user.id).select("-password");
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+    res.json({ success: true, user });
+  } catch (err) {
+    console.error("Get me error:", err.message);
+    res.status(500).json({ success: false, message: "Something went wrong" });
+  }
 };

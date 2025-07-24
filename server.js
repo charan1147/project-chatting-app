@@ -5,7 +5,7 @@ import cookieParser from "cookie-parser";
 import http from "http";
 import { connectDB } from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
-import userRoutes from "./routes/userRoutes.js";
+import contactRoutes from "./routes/contactRoutes.js"
 import chatRoutes from "./routes/chatRoutes.js";
 import callRoutes from "./routes/callRoutes.js";
 import { setupSocket } from "./websocket/index.js";
@@ -36,7 +36,7 @@ app.use((req, res, next) => {
 
 app.get("/", (req, res) => res.send("Server running"));
 app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes);
+app.use("/api/contact", contactRoutes);
 app.use("/api/messages", chatRoutes);
 app.use("/api/call", callRoutes);
 
