@@ -1,10 +1,10 @@
 import express from "express";
-import { verifyToken } from "../middleware/authMiddleware.js";
+import { protect } from "../middleware/authMiddleware.js";
 import { sendMessage, getMessages } from "../controllers/chatController.js";
 
 const router = express.Router();
 
-router.post("/send", verifyToken, sendMessage);
-router.get("/:contactId", verifyToken, getMessages);
+router.post("/send", protect, sendMessage);
+router.get("/:contactId", protect, getMessages);
 
 export default router;

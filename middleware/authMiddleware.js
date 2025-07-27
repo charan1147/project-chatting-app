@@ -1,22 +1,22 @@
-export const verifyToken = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(" ")[1];
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
 
-  if (!token) {
-    return res.status(401).json({
-      success: false,
-      message: "Unauthorized: No token provided",
-    });
-  }
+export const protect = async (req, res, next) => {
+  let token;
 
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = { id: decoded.id };
-    next();
-  } catch (err) {
-    return res.status(401).json({
-      success: false,
-      message: "Unauthorized: Invalid token",
-    });
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    try {
+      token = req.headers.authorization.split(" ")[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = await User.findById(decoded.id).select("-password");
+      next();
+    } catch (err) {
+      res.status(401).json({ message: "Token is not valid" });
+    }
+  } else {
+    res.status(401).json({ message: "No token, authorization denied" });
   }
 };

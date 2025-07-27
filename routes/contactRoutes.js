@@ -1,5 +1,5 @@
 import express from "express";
-import { verifyToken } from "../middleware/authMiddleware.js";
+import { protect } from "../middleware/authMiddleware.js";
 import {
   
   addContact,
@@ -8,7 +8,7 @@ import {
 
 const router = express.Router();
 
-router.post("/add-contact", verifyToken, addContact);
-router.get("/contacts", verifyToken, getContacts);
+router.post("/add-contact", protect, addContact);
+router.get("/contacts", protect, getContacts);
 
 export default router;

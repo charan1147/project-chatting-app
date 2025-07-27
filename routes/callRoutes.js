@@ -1,5 +1,5 @@
 import express from "express";
-import { verifyToken } from "../middleware/authMiddleware.js";
+import { protect } from "../middleware/authMiddleware.js";
 import {
   startCall,
   answerCall,
@@ -8,8 +8,8 @@ import {
 
 const router = express.Router();
 
-router.post("/start", verifyToken, startCall);
-router.post("/answer", verifyToken, answerCall);
-router.post("/end", verifyToken, endCall);
+router.post("/start", protect, startCall);
+router.post("/answer", protect, answerCall);
+router.post("/end", protect, endCall);
 
 export default router;

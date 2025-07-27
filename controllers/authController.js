@@ -1,91 +1,74 @@
+import jwt from "jsonwebtoken";
 import User from "../models/User.js";
-import { generateToken } from "../services/jwtService.js";
-import mongoose from "mongoose"; 
+
+const generateToken = (userId) => {
+  return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
+    expiresIn: "7d",
+  });
+};
 
 
 export const registerUser = async (req, res) => {
+  const { name, email, password } = req.body;
+
   try {
-    const { name, email, password } = req.body;
-
-    if (!name || !email || !password) {
-      return res
-        .status(400)
-        .json({ success: false, message: "All fields are required" });
-    }
-
     const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Email already used" });
-    }
+    if (userExists)
+      return res.status(400).json({ message: "User already exists" });
 
     const user = await User.create({ name, email, password });
+
     const token = generateToken(user._id);
 
     res.status(201).json({
-      success: true,
+      message: "Registration successful",
       token,
-      user: { id: user._id, name: user.name, email: user.email },
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+      },
     });
-  } catch (err) {
-    console.error("Register error:", err.message); 
-    res.status(500).json({ success: false, message: "Something went wrong" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-// Log in a user
 export const loginUser = async (req, res) => {
+  const { email, password } = req.body;
+
   try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Email and password required" });
-    }
-
     const user = await User.findOne({ email });
-    if (!user || !(await user.comparePassword(password))) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Wrong email or password" });
+    if (!user || !(await user.matchPassword(password))) {
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
     const token = generateToken(user._id);
+
     res.status(200).json({
-      success: true,
+      message: "Login successful",
       token,
-      user: { id: user._id, name: user.name, email: user.email },
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+      },
     });
-  } catch (err) {
-    console.error("Login error:", err.message); 
-    res.status(500).json({ success: false, message: "Something went wrong" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-// Log out a user
-export const logout = async (req, res) => {
-  res.clearCookie("token"); 
-  res.status(200).json({ success: true, message: "Logged out" });
+
+export const logout = (req, res) => {
+  res.status(200).json({ message: "Logged out successfully" });
 };
 
 export const getMe = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.user.id)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid user ID" });
-    }
     const user = await User.findById(req.user.id).select("-password");
-    if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
-    }
-    res.json({ success: true, user });
+    res.status(200).json(user);
   } catch (err) {
-    console.error("Get me error:", err.message);
-    res.status(500).json({ success: false, message: "Something went wrong" });
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
