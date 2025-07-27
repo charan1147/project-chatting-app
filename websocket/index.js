@@ -4,14 +4,11 @@ import jwt from "jsonwebtoken";
 
 export const userSocketMap = new Map();
 
-
 export const getSocketIdByUserId = (userId) => userSocketMap.get(userId);
 
-
 export const getRoomId = (user1, user2) => {
-  return [String(user1), String(user2)].sort().join("_"); 
+  return [String(user1), String(user2)].sort().join("_");
 };
-
 
 export const setupSocket = (server) => {
   if (!process.env.JWT_SECRET || !process.env.FRONTEND_URL) {
@@ -21,7 +18,7 @@ export const setupSocket = (server) => {
 
   const io = new Server(server, {
     cors: {
-      origin: process.env.FRONTEND_URL, 
+      origin: process.env.FRONTEND_URL,
       credentials: true,
     },
   });
@@ -40,17 +37,22 @@ export const setupSocket = (server) => {
           : token;
         const decoded = jwt.verify(cleanToken, process.env.JWT_SECRET);
 
-     
         if (!mongoose.Types.ObjectId.isValid(userId) || decoded.id !== userId) {
           callback?.({ error: "Invalid user ID or token" });
           return socket.disconnect();
         }
 
-        userSocketMap.set(userId, socket.id); 
-        socket.userId = userId; 
+        userSocketMap.set(userId, socket.id);
+        socket.userId = userId;
         callback?.({ success: true });
       } catch (err) {
-        callback?.({ error: "Invalid token" });
+        // CHANGED: Handle TokenExpiredError specifically
+        callback?.({
+          error:
+            err.name === "TokenExpiredError"
+              ? "Token expired"
+              : "Invalid token",
+        });
         socket.disconnect();
       }
     });
@@ -67,10 +69,9 @@ export const setupSocket = (server) => {
       }
     });
 
-
     socket.on("answerCall", ({ roomId, signal }) => {
       if (!roomId || !roomId.includes("_")) {
-        return; 
+        return;
       }
       const [user1Id, user2Id] = roomId.split("_");
       const initiatorId = socket.userId === user1Id ? user2Id : user1Id;
@@ -79,7 +80,6 @@ export const setupSocket = (server) => {
         io.to(initiatorSocketId).emit("call:accepted", { signal });
       }
     });
-
 
     socket.on("endCall", ({ roomId }) => {
       if (!roomId || !roomId.includes("_")) {

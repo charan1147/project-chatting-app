@@ -40,7 +40,6 @@ export const startCall = async (req, res) => {
   }
 };
 
-
 export const answerCall = async (req, res) => {
   try {
     const { roomId, signalData } = req.body;

@@ -40,6 +40,7 @@ export const sendMessage = async (req, res) => {
 export const getMessages = async (req, res) => {
   try {
     const { contactId } = req.params;
+    const { page = 1, limit = 50 } = req.query; // NEW: Added pagination
     if (!mongoose.Types.ObjectId.isValid(contactId)) {
       return res
         .status(400)
@@ -53,7 +54,9 @@ export const getMessages = async (req, res) => {
       ],
     })
       .populate("sender", "name email")
-      .sort({ createdAt: 1 });
+      .sort({ createdAt: 1 })
+      .skip((page - 1) * limit) // NEW: Pagination
+      .limit(parseInt(limit)); // NEW: Pagination
     res.json({ success: true, messages });
   } catch (err) {
     res.status(500).json({ success: false, message: "Something went wrong" });

@@ -17,6 +17,7 @@ const userSchema = new mongoose.Schema(
       required: [true, "Password is required"],
       minlength: 6,
     },
+    contacts: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], // NEW: Added contacts field
   },
   { timestamps: true }
 );

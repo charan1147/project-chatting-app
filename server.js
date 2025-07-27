@@ -5,7 +5,7 @@ import cookieParser from "cookie-parser";
 import http from "http";
 import { connectDB } from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
-import contactRoutes from "./routes/contactRoutes.js"
+import contactRoutes from "./routes/contactRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import callRoutes from "./routes/callRoutes.js";
 import { setupSocket } from "./websocket/index.js";
@@ -43,6 +43,4 @@ app.use("/api/call", callRoutes);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5016;
-server.listen(PORT, () =>
-  console.log(`Server running on ${PORT}`)
-);
+server.listen(PORT, () => console.log(`Server running on ${PORT}`));
